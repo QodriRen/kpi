@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(dir /S /B /A-D \"d:\\\\My Project\\\\kpi\")",
+      "Bash(findstr /V \"node_modules\")",
+      "Bash(findstr /V \".next\")",
+      "Bash(npx next *)",
+      "Bash(mv next.config.ts next.config.mjs)",
+      "Bash(cat next.config.ts)"
+    ]
+  }
+}

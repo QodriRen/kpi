@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Pengguna {
+  id_pengguna   Int      @id @default(autoincrement())
+  nama_lengkap  String   @db.VarChar(100)
+  email         String   @unique @db.VarChar(100)
+  password_hash String   @db.VarChar(255)
+  role          String   @db.VarChar(50)
+  is_aktif      Boolean  @default(true)
+
+  karyawan      Karyawan?
+  divisi_kepala Divisi[]
+  penilaian     PenilaianKpi[]
+  feedback      Feedback[]
+  log_aktivitas LogAktivitas[]
+}
+
+model Divisi {
+  id_divisi   Int      @id @default(autoincrement())
+  nama_divisi String   @db.VarChar(100)
+  id_kepala   Int?
+  deskripsi   String?  @db.Text
+
+  kepala      Pengguna?  @relation(fields: [id_kepala], references: [id_pengguna])
+  karyawan    Karyawan[]
+  indikator   IndikatorKpi[]
+}
+
+model Karyawan {
+  id_karyawan  Int     @id @default(autoincrement())
+  id_pengguna  Int     @unique
+  id_divisi    Int
+  nip          String? @db.VarChar(50)
+  jabatan      String? @db.VarChar(100)
+  status_kerja String? @db.VarChar(50)
+
+  pengguna     Pengguna @relation(fields: [id_pengguna], references: [id_pengguna])
+  divisi       Divisi   @relation(fields: [id_divisi], references: [id_divisi])
+  target_kpi   TargetKpi[]
+}
+
+model IndikatorKpi {
+  id_indikator   Int      @id @default(autoincrement())
+  id_divisi      Int
+  nama_indikator String   @db.VarChar(100)
+  kategori       String?  @db.VarChar(50)
+  satuan         String?  @db.VarChar(50)
+  bobot_persen   Decimal  @db.Decimal(5,2)
+  deskripsi      String?  @db.Text
+
+  divisi         Divisi   @relation(fields: [id_divisi], references: [id_divisi])
+  target_kpi     TargetKpi[]
+}
+
+model PeriodePenilaian {
+  id_periode      Int      @id @default(autoincrement())
+  nama_periode    String   @db.VarChar(100)
+  tanggal_mulai   DateTime @db.Date
+  tanggal_selesai DateTime @db.Date
+  tipe_periode    String   @db.VarChar(50)
+  is_aktif        Boolean  @default(true)
+
+  target_kpi      TargetKpi[]
+}
+
+model TargetKpi {
+  id_target    Int      @id @default(autoincrement())
+  id_indikator Int
+  id_karyawan  Int
+  id_periode   Int
+  nilai_target Decimal  @db.Decimal(10,2)
+  dibuat_oleh  String?  @db.VarChar(100)
+
+  indikator    IndikatorKpi     @relation(fields: [id_indikator], references: [id_indikator])
+  karyawan     Karyawan         @relation(fields: [id_karyawan], references: [id_karyawan])
+  periode      PeriodePenilaian @relation(fields: [id_periode], references: [id_periode])
+  penilaian    PenilaianKpi[]
+
+  @@unique([id_indikator, id_karyawan, id_periode])
+}
+
+model PenilaianKpi {
+  id_penilaian   Int      @id @default(autoincrement())
+  id_target      Int
+  id_penilai     Int
+  nilai_aktual   Decimal  @db.Decimal(10,2)
+  skor_akhir     Decimal  @db.Decimal(10,2)
+  status_catatan String?  @db.Text
+
+  target         TargetKpi @relation(fields: [id_target], references: [id_target])
+  penilai        Pengguna  @relation(fields: [id_penilai], references: [id_pengguna])
+  feedback       Feedback[]
+}
+
+model Feedback {
+  id_feedback   Int      @id @default(autoincrement())
+  id_penilaian  Int
+  id_pemberi    Int
+  isi_feedback  String?  @db.Text
+  dibuat_pada   DateTime @default(now())
+  tipe_feedback String?  @db.VarChar(50)
+
+  penilaian     PenilaianKpi @relation(fields: [id_penilaian], references: [id_penilaian])
+  pemberi       Pengguna     @relation(fields: [id_pemberi], references: [id_pengguna])
+}
+
+model LogAktivitas {
+  id_log      Int      @id @default(autoincrement())
+  id_pengguna Int
+  aksi        String?  @db.Text
+  waktu       DateTime @default(now())
+
+  pengguna    Pengguna @relation(fields: [id_pengguna], references: [id_pengguna])
+}
