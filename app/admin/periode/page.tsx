@@ -18,22 +18,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import DataTable from "@/components/tables/DataTable";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/utils";
 
+const BULAN_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+function namaDariBulan(yearMonth: string): string {
+  const [year, month] = yearMonth.split("-").map(Number);
+  return `${BULAN_ID[month - 1]} ${year}`;
+}
+
 const schema = z.object({
-  nama_periode: z.string().min(2),
-  tanggal_mulai: z.string().min(1, "Wajib diisi"),
-  tanggal_selesai: z.string().min(1, "Wajib diisi"),
-  tipe_periode: z.string().min(1, "Pilih tipe"),
+  bulan: z.string().regex(/^\d{4}-\d{2}$/, "Pilih bulan yang valid"),
   is_aktif: z.boolean().optional(),
 });
 
@@ -49,6 +46,11 @@ interface Periode {
   _count: { target_kpi: number };
 }
 
+function periodeKeBulan(p: Periode): string {
+  // Ambil YYYY-MM dari tanggal_mulai
+  return p.tanggal_mulai.split("T")[0].slice(0, 7);
+}
+
 export default function PeriodePage() {
   const [periode, setPeriode] = useState<Periode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,10 +58,12 @@ export default function PeriodePage() {
   const [editing, setEditing] = useState<Periode | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { is_aktif: true },
   });
+
+  const bulanWatch = watch("bulan");
 
   const fetchData = async () => {
     setLoading(true);
@@ -72,19 +76,13 @@ export default function PeriodePage() {
 
   const openCreate = () => {
     setEditing(null);
-    reset({ nama_periode: "", tanggal_mulai: "", tanggal_selesai: "", tipe_periode: "", is_aktif: true });
+    reset({ bulan: "", is_aktif: true });
     setOpen(true);
   };
 
   const openEdit = (p: Periode) => {
     setEditing(p);
-    reset({
-      nama_periode: p.nama_periode,
-      tanggal_mulai: p.tanggal_mulai.split("T")[0],
-      tanggal_selesai: p.tanggal_selesai.split("T")[0],
-      tipe_periode: p.tipe_periode,
-      is_aktif: p.is_aktif,
-    });
+    reset({ bulan: periodeKeBulan(p), is_aktif: p.is_aktif });
     setOpen(true);
   };
 
@@ -138,7 +136,6 @@ export default function PeriodePage() {
 
   const columns = [
     { key: "nama_periode", header: "Nama Periode" },
-    { key: "tipe_periode", header: "Tipe" },
     {
       key: "tanggal_mulai",
       header: "Mulai",
@@ -187,7 +184,7 @@ export default function PeriodePage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">Periode Penilaian</h2>
-          <p className="text-muted-foreground">Kelola periode penilaian KPI</p>
+          <p className="text-muted-foreground">Periode penilaian bulanan — satu entri per bulan</p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" />
@@ -204,42 +201,20 @@ export default function PeriodePage() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Periode" : "Tambah Periode"}</DialogTitle>
+            <DialogTitle>{editing ? "Edit Periode" : "Tambah Periode Bulanan"}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label>Nama Periode</Label>
-              <Input {...register("nama_periode")} placeholder="cth. Penilaian Juni 2025" />
-              {errors.nama_periode && <p className="text-sm text-destructive">{errors.nama_periode.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>Tipe Periode</Label>
-              <Select onValueChange={(v) => setValue("tipe_periode", v)} defaultValue={editing?.tipe_periode}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih tipe" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Bulanan">Bulanan</SelectItem>
-                  <SelectItem value="Triwulan">Triwulan</SelectItem>
-                  <SelectItem value="Semesteran">Semesteran</SelectItem>
-                  <SelectItem value="Tahunan">Tahunan</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.tipe_periode && <p className="text-sm text-destructive">{errors.tipe_periode.message}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tanggal Mulai</Label>
-                <Input type="date" {...register("tanggal_mulai")} />
-                {errors.tanggal_mulai && <p className="text-sm text-destructive">{errors.tanggal_mulai.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label>Tanggal Selesai</Label>
-                <Input type="date" {...register("tanggal_selesai")} />
-                {errors.tanggal_selesai && <p className="text-sm text-destructive">{errors.tanggal_selesai.message}</p>}
-              </div>
+              <Label>Bulan & Tahun</Label>
+              <Input type="month" {...register("bulan")} />
+              {errors.bulan && <p className="text-sm text-destructive">{errors.bulan.message}</p>}
+              {bulanWatch && !errors.bulan && (
+                <p className="text-sm text-muted-foreground">
+                  Nama periode: <strong>{namaDariBulan(bulanWatch)}</strong>
+                </p>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>

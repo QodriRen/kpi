@@ -130,7 +130,7 @@ export default function KaryawanDashboard() {
                             {nilaiAktual} / {nilaiTarget} {t.indikator.satuan}
                           </span>
                           <Badge
-                            variant={persen >= 85 ? "success" : persen >= 70 ? "warning" : "destructive"}
+                            variant={persen >= 80 ? "success" : persen >= 76 ? "warning" : "destructive"}
                             className="text-xs"
                           >
                             {persen.toFixed(0)}%

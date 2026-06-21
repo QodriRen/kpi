@@ -21,16 +21,29 @@ export const totalSkor = (
   );
 
 export const getGrade = (skor: number) => {
-  if (skor >= 90) return { grade: "A", label: "Sangat Baik", color: "green" };
-  if (skor >= 75) return { grade: "B", label: "Baik", color: "blue" };
-  if (skor >= 60) return { grade: "C", label: "Cukup", color: "yellow" };
-  return { grade: "D", label: "Perlu Perbaikan", color: "red" };
+  if (skor >= 80) return { grade: "A", label: "Baik", color: "green" };
+  if (skor >= 76) return { grade: "B", label: "Cukup", color: "yellow" };
+  return { grade: "C", label: "Rendah", color: "red" };
 };
 
 export const getColorBySkor = (persen: number) => {
-  if (persen >= 85) return "bg-green-500";
-  if (persen >= 70) return "bg-yellow-500";
+  if (persen >= 80) return "bg-green-500";
+  if (persen >= 76) return "bg-yellow-500";
   return "bg-red-500";
+};
+
+export const isPeriodeSixMonths = (start: Date | string, end: Date | string): boolean => {
+  const s = new Date(start);
+  const e = new Date(end);
+  // Hitung bulan secara inklusif: Jan s/d Jun = 6 bulan
+  const months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + 1;
+  return months >= 6;
+};
+
+export const getRekomendasiKontrak = (grade: string): { rekomendasi: string; variant: "success" | "warning" | "destructive" } => {
+  if (grade === "A") return { rekomendasi: "Lanjut Kontrak", variant: "success" };
+  if (grade === "B") return { rekomendasi: "Pindah Divisi", variant: "warning" };
+  return { rekomendasi: "Tidak Lanjut Kontrak", variant: "destructive" };
 };
 
 export const formatDate = (date: Date | string) => {

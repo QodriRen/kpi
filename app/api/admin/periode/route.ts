@@ -3,11 +3,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
+const BULAN_ID = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
 const schema = z.object({
-  nama_periode: z.string().min(2),
-  tanggal_mulai: z.string(),
-  tanggal_selesai: z.string(),
-  tipe_periode: z.string(),
+  bulan: z.string().regex(/^\d{4}-\d{2}$/, "Format bulan harus YYYY-MM"),
   is_aktif: z.boolean().optional(),
 });
 
@@ -18,7 +17,7 @@ export async function GET() {
   }
 
   const periode = await prisma.periodePenilaian.findMany({
-    orderBy: { id_periode: "desc" },
+    orderBy: { tanggal_mulai: "desc" },
     include: { _count: { select: { target_kpi: true } } },
   });
 
@@ -37,18 +36,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
+  const [year, month] = parsed.data.bulan.split("-").map(Number);
+  const tanggal_mulai = new Date(year, month - 1, 1);
+  const tanggal_selesai = new Date(year, month, 0); // hari terakhir bulan
+  const nama_periode = `${BULAN_ID[month - 1]} ${year}`;
+
+  // Cegah duplikasi periode bulan yang sama
+  const existing = await prisma.periodePenilaian.findFirst({
+    where: { tanggal_mulai },
+  });
+  if (existing) {
+    return NextResponse.json({ error: `Periode ${nama_periode} sudah ada` }, { status: 409 });
+  }
+
   const periode = await prisma.periodePenilaian.create({
     data: {
-      ...parsed.data,
-      tanggal_mulai: new Date(parsed.data.tanggal_mulai),
-      tanggal_selesai: new Date(parsed.data.tanggal_selesai),
+      nama_periode,
+      tanggal_mulai,
+      tanggal_selesai,
+      tipe_periode: "Bulanan",
+      is_aktif: parsed.data.is_aktif ?? true,
     },
   });
 
   await prisma.logAktivitas.create({
     data: {
       id_pengguna: Number(session.user.id),
-      aksi: `Membuat periode penilaian: ${parsed.data.nama_periode}`,
+      aksi: `Membuat periode penilaian bulanan: ${nama_periode}`,
     },
   });
 

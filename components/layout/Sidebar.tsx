@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  FileCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const hrNav = [
   { href: "/hr/karyawan", label: "Karyawan", icon: Users },
   { href: "/hr/target", label: "Target KPI", icon: Target },
   { href: "/hr/penilaian", label: "Penilaian", icon: BarChart3 },
+  { href: "/hr/rekomendasi", label: "Rekomendasi", icon: FileCheck },
   { href: "/hr/feedback", label: "Feedback", icon: MessageSquare },
 ];
 
