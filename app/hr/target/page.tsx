@@ -44,8 +44,8 @@ interface Target {
   periode: { nama_periode: string };
   penilaian: { id_penilaian: number }[];
 }
-interface Karyawan { id_karyawan: number; pengguna: { nama_lengkap: string } }
-interface Indikator { id_indikator: number; nama_indikator: string; satuan: string | null }
+interface Karyawan { id_karyawan: number; id_divisi: number; pengguna: { nama_lengkap: string }; divisi: { nama_divisi: string } }
+interface Indikator { id_indikator: number; id_divisi: number; nama_indikator: string; satuan: string | null }
 interface Periode { id_periode: number; nama_periode: string; is_aktif: boolean }
 
 export default function HrTargetPage() {
@@ -56,6 +56,7 @@ export default function HrTargetPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedDivisiId, setSelectedDivisiId] = useState<number | null>(null);
 
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -133,7 +134,7 @@ export default function HrTargetPage() {
           <h2 className="text-2xl font-bold">Target KPI</h2>
           <p className="text-muted-foreground">Tetapkan target KPI untuk karyawan</p>
         </div>
-        <Button onClick={() => { reset(); setOpen(true); }}>
+        <Button onClick={() => { reset(); setSelectedDivisiId(null); setOpen(true); }}>
           <Plus className="mr-2 h-4 w-4" />
           Tetapkan Target
         </Button>
@@ -155,12 +156,18 @@ export default function HrTargetPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label>Karyawan</Label>
-              <Select onValueChange={(v) => setValue("id_karyawan", Number(v))}>
+              <Select onValueChange={(v) => {
+                const id = Number(v);
+                setValue("id_karyawan", id);
+                const found = karyawan.find((k) => k.id_karyawan === id);
+                setSelectedDivisiId(found?.id_divisi ?? null);
+                setValue("id_indikator", 0 as unknown as number); // reset indikator
+              }}>
                 <SelectTrigger><SelectValue placeholder="Pilih karyawan" /></SelectTrigger>
                 <SelectContent>
                   {karyawan.map((k) => (
                     <SelectItem key={k.id_karyawan} value={String(k.id_karyawan)}>
-                      {k.pengguna.nama_lengkap}
+                      {k.pengguna.nama_lengkap} — {k.divisi.nama_divisi}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -183,14 +190,22 @@ export default function HrTargetPage() {
             </div>
             <div className="space-y-2">
               <Label>Indikator KPI</Label>
-              <Select onValueChange={(v) => setValue("id_indikator", Number(v))}>
-                <SelectTrigger><SelectValue placeholder="Pilih indikator" /></SelectTrigger>
+              <Select
+                key={selectedDivisiId ?? "none"}
+                disabled={!selectedDivisiId}
+                onValueChange={(v) => setValue("id_indikator", Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={selectedDivisiId ? "Pilih indikator" : "Pilih karyawan dulu"} />
+                </SelectTrigger>
                 <SelectContent>
-                  {indikator.map((i) => (
-                    <SelectItem key={i.id_indikator} value={String(i.id_indikator)}>
-                      {i.nama_indikator}
-                    </SelectItem>
-                  ))}
+                  {indikator
+                    .filter((i) => i.id_divisi === selectedDivisiId)
+                    .map((i) => (
+                      <SelectItem key={i.id_indikator} value={String(i.id_indikator)}>
+                        {i.nama_indikator} {i.satuan ? `(${i.satuan})` : ""}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               {errors.id_indikator && <p className="text-sm text-destructive">{errors.id_indikator.message}</p>}

@@ -1,19 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getGrade, getColorBySkor, totalSkor } from "@/lib/utils";
 import ScoreGauge from "@/components/dashboard/ScoreGauge";
-
-type KelasNB = "Lanjut Kontrak" | "Pindah Divisi" | "Tidak Lanjut Kontrak";
-
-interface NaiveBayesResult {
-  kelas: KelasNB;
-  probabilitas: number;
-  detail: Record<KelasNB, number>;
-}
 
 interface HasilItem {
   id_target: number;
@@ -28,33 +20,15 @@ interface HasilItem {
   }[];
 }
 
-const NB_CLASSES: KelasNB[] = ["Lanjut Kontrak", "Pindah Divisi", "Tidak Lanjut Kontrak"];
-
-function getNbVariant(kelas: KelasNB): "success" | "warning" | "destructive" {
-  if (kelas === "Lanjut Kontrak") return "success";
-  if (kelas === "Pindah Divisi") return "warning";
-  return "destructive";
-}
-
-function getNbBarColor(kelas: KelasNB): string {
-  if (kelas === "Lanjut Kontrak") return "bg-green-500";
-  if (kelas === "Pindah Divisi") return "bg-yellow-500";
-  return "bg-red-500";
-}
-
 export default function KaryawanHasilPage() {
   const [hasil, setHasil] = useState<HasilItem[]>([]);
-  const [statusKerja, setStatusKerja] = useState<string | null>(null);
-  const [nbPerPeriode, setNbPerPeriode] = useState<Record<string, NaiveBayesResult>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/karyawan/hasil")
       .then((r) => r.json())
-      .then((d: { items: HasilItem[]; statusKerja: string | null; nb_per_periode: Record<string, NaiveBayesResult> }) => {
+      .then((d: { items: HasilItem[] }) => {
         setHasil(d.items);
-        setStatusKerja(d.statusKerja);
-        setNbPerPeriode(d.nb_per_periode ?? {});
         setLoading(false);
       });
   }, []);
@@ -68,9 +42,6 @@ export default function KaryawanHasilPage() {
     );
   }
 
-  const isKontrak = statusKerja?.toLowerCase().includes("kontrak") ?? false;
-
-  // Group by periode
   const byPeriode = hasil.reduce<Record<string, HasilItem[]>>((acc, item) => {
     const key = item.periode.nama_periode;
     if (!acc[key]) acc[key] = [];
@@ -100,58 +71,18 @@ export default function KaryawanHasilPage() {
             bobot_persen: Number(i.indikator.bobot_persen),
           }))
         );
-        const { grade, label, color } = getGrade(skorTotal);
-        const nbHasil = isKontrak ? (nbPerPeriode[namaPeriode] ?? null) : null;
+        const { grade, label, variant: gradeVariant } = getGrade(skorTotal);
 
         return (
           <div key={namaPeriode} className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
               <h3 className="text-lg font-semibold">{namaPeriode}</h3>
               {dinilai.length > 0 && (
-                <Badge
-                  variant={color === "green" ? "success" : color === "yellow" ? "warning" : "destructive"}
-                >
+                <Badge variant={gradeVariant}>
                   Grade {grade} — {label}
                 </Badge>
               )}
             </div>
-
-            {/* Prediksi Naive Bayes — hanya untuk karyawan kontrak */}
-            {nbHasil && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 space-y-2">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-                    Prediksi Kelanjutan Kontrak (Naive Bayes)
-                  </p>
-                  <Badge variant={getNbVariant(nbHasil.kelas)} className="text-sm">
-                    {nbHasil.kelas} — {Math.round(nbHasil.probabilitas * 100)}%
-                  </Badge>
-                </div>
-                <div className="space-y-1.5">
-                  {NB_CLASSES.map((kelas) => {
-                    const prob = nbHasil.detail[kelas];
-                    const persen = Math.round(prob * 100);
-                    const isWinner = kelas === nbHasil.kelas;
-                    return (
-                      <div key={kelas} className="flex items-center gap-2 text-xs">
-                        <span className={`w-40 shrink-0 ${isWinner ? "font-semibold text-blue-900" : "text-blue-600"}`}>
-                          {kelas}{isWinner ? " ✓" : ""}
-                        </span>
-                        <div className="flex-1 h-1.5 rounded-full bg-blue-100 overflow-hidden">
-                          <div
-                            className={`h-full rounded-full ${getNbBarColor(kelas)} ${!isWinner ? "opacity-40" : ""}`}
-                            style={{ width: `${persen}%` }}
-                          />
-                        </div>
-                        <span className={`w-8 text-right ${isWinner ? "font-semibold text-blue-900" : "text-blue-600"}`}>
-                          {persen}%
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {dinilai.length > 0 && (

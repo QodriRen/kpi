@@ -46,8 +46,8 @@ function getNbBarColor(kelas: KelasNB): string {
 }
 
 function getSkorBarColor(skor: number): string {
-  if (skor >= 80) return "bg-green-500";
-  if (skor >= 76) return "bg-yellow-500";
+  if (skor >= 96) return "bg-green-500";
+  if (skor >= 88) return "bg-yellow-500";
   return "bg-red-500";
 }
 
@@ -101,8 +101,7 @@ export default function HrRekomendasiPage() {
       ) : (
         <div className="grid gap-6">
           {data.map((item, idx) => {
-            const { grade, label } = getGrade(item.avg_skor);
-            const gradeVariant = grade === "A" ? "success" : grade === "B" ? "warning" : "destructive";
+            const { grade, label, variant: gradeVariant } = getGrade(item.avg_skor);
             const nbVariant = getNbVariant(item.nb.kelas);
 
             const periodeAwal = item.periode_berurutan[0]?.nama_periode ?? "-";
@@ -153,6 +152,7 @@ export default function HrRekomendasiPage() {
                         <tr>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Periode</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Skor</th>
+                          <th className="px-3 py-2 font-medium text-muted-foreground">Grade</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">% Tercapai</th>
                           <th className="px-3 py-2 font-medium text-muted-foreground w-24">Grafik</th>
                         </tr>
@@ -162,6 +162,16 @@ export default function HrRekomendasiPage() {
                           <tr key={i} className="hover:bg-muted/20">
                             <td className="px-3 py-2">{p.nama_periode}</td>
                             <td className="px-3 py-2 text-right font-medium">{p.total_skor.toFixed(1)}</td>
+                            <td className="px-3 py-2">
+                              {(() => {
+                                const g = getGrade(p.total_skor);
+                                return (
+                                  <Badge variant={g.variant} className="text-xs">
+                                    {g.grade} — {g.label}
+                                  </Badge>
+                                );
+                              })()}
+                            </td>
                             <td className="px-3 py-2 text-right">{Math.round(p.pct_tercapai * 100)}%</td>
                             <td className="px-3 py-2">
                               <div className="h-2 rounded-full bg-secondary overflow-hidden w-20">
@@ -177,6 +187,16 @@ export default function HrRekomendasiPage() {
                         <tr className="bg-muted/40 font-semibold">
                           <td className="px-3 py-2 text-muted-foreground">Rata-rata</td>
                           <td className="px-3 py-2 text-right">{item.avg_skor.toFixed(1)}</td>
+                          <td className="px-3 py-2">
+                            {(() => {
+                              const g = getGrade(item.avg_skor);
+                              return (
+                                <Badge variant={g.variant} className="text-xs">
+                                  {g.grade} — {g.label}
+                                </Badge>
+                              );
+                            })()}
+                          </td>
                           <td className="px-3 py-2 text-right">{Math.round(item.avg_pct_tercapai * 100)}%</td>
                           <td className="px-3 py-2">
                             <div className="h-2 rounded-full bg-secondary overflow-hidden w-20">

@@ -15,7 +15,7 @@
 ## Scoring Logic
 skor_indikator = (nilai_aktual / nilai_target) * bobot_persen
 total_skor = SUM semua skor_indikator (max 100)
-Grade: A≥80 (Baik), B≥76 (Cukup), C<76 (Rendah)
+Grade: A≥96 (Baik), B≥88 (Cukup), C<88 (Kurang)
 
 ## Konvensi
 - Semua API route di /app/api/*

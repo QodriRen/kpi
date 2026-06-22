@@ -91,8 +91,9 @@ export async function GET() {
         return sum + (aktual / target) * bobot;
       }, 0);
 
+      // Tercapai = aktual >= 80% target (konsisten dengan threshold Grade A)
       const tercapai = dinilai.filter(
-        (t) => Number(t.penilaian[0].nilai_aktual) >= Number(t.nilai_target)
+        (t) => Number(t.penilaian[0].nilai_aktual) / Number(t.nilai_target) >= 0.8
       ).length;
 
       periodeScores.push({

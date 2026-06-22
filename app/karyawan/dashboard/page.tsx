@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import ScoreGauge from "@/components/dashboard/ScoreGauge";
-import { getGrade, getColorBySkor } from "@/lib/utils";
+import { getColorBySkor } from "@/lib/utils";
 import { Info } from "lucide-react";
 
 interface TargetItem {
@@ -81,7 +81,6 @@ export default function KaryawanDashboard() {
     );
   }
 
-  const { grade, label, color } = getGrade(data.totalSkor);
   const targetsWithPenilaian = data.targets.filter((t) => t.penilaian.length > 0);
 
   return (
@@ -130,7 +129,7 @@ export default function KaryawanDashboard() {
                             {nilaiAktual} / {nilaiTarget} {t.indikator.satuan}
                           </span>
                           <Badge
-                            variant={persen >= 80 ? "success" : persen >= 76 ? "warning" : "destructive"}
+                            variant={persen >= 96 ? "success" : persen >= 88 ? "warning" : "destructive"}
                             className="text-xs"
                           >
                             {persen.toFixed(0)}%

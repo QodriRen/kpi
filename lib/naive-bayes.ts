@@ -13,24 +13,27 @@ export type KelasNB = "Lanjut Kontrak" | "Pindah Divisi" | "Tidak Lanjut Kontrak
 
 const KELAS_LIST: KelasNB[] = ["Lanjut Kontrak", "Pindah Divisi", "Tidak Lanjut Kontrak"];
 
-// Parameter distribusi Gaussian per kelas berdasarkan domain knowledge penilaian KPI.
-// totalSkor  : skor KPI total (0–100)
-// pctTercapai: fraksi indikator di mana nilai_aktual >= nilai_target (0–1)
+// Parameter distribusi Gaussian per kelas — disesuaikan dengan skala penilaian:
+//   Baik   : skor 96–100%  → Lanjut Kontrak
+//   Cukup  : skor 88–95%   → Pindah Divisi
+//   Kurang : skor < 88%    → Tidak Lanjut Kontrak
+// totalSkor  : rata-rata skor KPI total dari 6 bulan (0–100)
+// pctTercapai: fraksi indikator dengan aktual >= 80% target, rata-rata 6 bulan (0–1)
 const MODEL: Record<KelasNB, ClassModel> = {
   "Lanjut Kontrak": {
     prior: 0.40,
-    totalSkor: { mean: 87, variance: 25 },
-    pctTercapai: { mean: 0.90, variance: 0.008 },
+    totalSkor: { mean: 97.5, variance: 4 },       // Baik: 96–100, σ≈2
+    pctTercapai: { mean: 0.90, variance: 0.025 },
   },
   "Pindah Divisi": {
     prior: 0.35,
-    totalSkor: { mean: 78, variance: 4 },
-    pctTercapai: { mean: 0.78, variance: 0.012 },
+    totalSkor: { mean: 91, variance: 9 },          // Cukup: 88–95, σ≈3
+    pctTercapai: { mean: 0.72, variance: 0.035 },
   },
   "Tidak Lanjut Kontrak": {
     prior: 0.25,
-    totalSkor: { mean: 60, variance: 100 },
-    pctTercapai: { mean: 0.55, variance: 0.04 },
+    totalSkor: { mean: 75, variance: 100 },        // Kurang: <88, σ≈10
+    pctTercapai: { mean: 0.45, variance: 0.07 },
   },
 };
 
