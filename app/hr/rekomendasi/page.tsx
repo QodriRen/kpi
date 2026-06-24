@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getGrade } from "@/lib/utils";
+import { ChevronRight, ChevronDown } from "lucide-react";
 
 type KelasNB = "Lanjut Kontrak" | "Pindah Divisi" | "Tidak Lanjut Kontrak";
 
@@ -14,11 +15,22 @@ interface NaiveBayesResult {
   detail: Record<KelasNB, number>;
 }
 
+interface IndikatorDetail {
+  nama_indikator: string;
+  satuan: string | null;
+  nilai_aktual: number;
+  nilai_target: number;
+  bobot_persen: number;
+  skor: number;
+  tercapai: boolean;
+}
+
 interface PeriodeSkor {
   id_periode: number;
   nama_periode: string;
   total_skor: number;
   pct_tercapai: number;
+  indikator: IndikatorDetail[];
 }
 
 interface RekomendasiItem {
@@ -54,6 +66,7 @@ function getSkorBarColor(skor: number): string {
 export default function HrRekomendasiPage() {
   const [data, setData] = useState<RekomendasiItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetch("/api/hr/rekomendasi")
@@ -64,6 +77,15 @@ export default function HrRekomendasiPage() {
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  function togglePeriode(key: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   if (loading) {
     return (
@@ -83,7 +105,6 @@ export default function HrRekomendasiPage() {
         </p>
       </div>
 
-      {/* Keterangan algoritma */}
       <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
         <strong>Syarat muncul:</strong> Status karyawan = kontrak <strong>dan</strong> sudah dinilai di{" "}
         <strong>6 periode bulanan berurutan</strong> tanpa jeda.
@@ -103,7 +124,6 @@ export default function HrRekomendasiPage() {
           {data.map((item, idx) => {
             const { grade, label, variant: gradeVariant } = getGrade(item.avg_skor);
             const nbVariant = getNbVariant(item.nb.kelas);
-
             const periodeAwal = item.periode_berurutan[0]?.nama_periode ?? "-";
             const periodeAkhir = item.periode_berurutan[item.periode_berurutan.length - 1]?.nama_periode ?? "-";
 
@@ -150,6 +170,7 @@ export default function HrRekomendasiPage() {
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50">
                         <tr>
+                          <th className="text-left px-3 py-2 font-medium text-muted-foreground w-6"></th>
                           <th className="text-left px-3 py-2 font-medium text-muted-foreground">Periode</th>
                           <th className="text-right px-3 py-2 font-medium text-muted-foreground">Skor</th>
                           <th className="px-3 py-2 font-medium text-muted-foreground">Grade</th>
@@ -158,33 +179,98 @@ export default function HrRekomendasiPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {item.periode_berurutan.map((p, i) => (
-                          <tr key={i} className="hover:bg-muted/20">
-                            <td className="px-3 py-2">{p.nama_periode}</td>
-                            <td className="px-3 py-2 text-right font-medium">{p.total_skor.toFixed(1)}</td>
-                            <td className="px-3 py-2">
-                              {(() => {
-                                const g = getGrade(p.total_skor);
-                                return (
+                        {item.periode_berurutan.map((p, i) => {
+                          const rowKey = `${idx}-${p.id_periode}`;
+                          const isOpen = expanded.has(rowKey);
+                          const g = getGrade(p.total_skor);
+
+                          return (
+                            <>
+                              {/* Baris periode — klik untuk expand */}
+                              <tr
+                                key={rowKey}
+                                className="hover:bg-muted/30 cursor-pointer select-none"
+                                onClick={() => togglePeriode(rowKey)}
+                              >
+                                <td className="px-3 py-2 text-muted-foreground">
+                                  {isOpen
+                                    ? <ChevronDown className="h-3.5 w-3.5" />
+                                    : <ChevronRight className="h-3.5 w-3.5" />}
+                                </td>
+                                <td className="px-3 py-2 font-medium">{p.nama_periode}</td>
+                                <td className="px-3 py-2 text-right font-medium">{p.total_skor.toFixed(1)}</td>
+                                <td className="px-3 py-2">
                                   <Badge variant={g.variant} className="text-xs">
                                     {g.grade} — {g.label}
                                   </Badge>
-                                );
-                              })()}
-                            </td>
-                            <td className="px-3 py-2 text-right">{Math.round(p.pct_tercapai * 100)}%</td>
-                            <td className="px-3 py-2">
-                              <div className="h-2 rounded-full bg-secondary overflow-hidden w-20">
-                                <div
-                                  className={`h-full rounded-full ${getSkorBarColor(p.total_skor)}`}
-                                  style={{ width: `${Math.min(p.total_skor, 100)}%` }}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                                </td>
+                                <td className="px-3 py-2 text-right">{Math.round(p.pct_tercapai * 100)}%</td>
+                                <td className="px-3 py-2">
+                                  <div className="h-2 rounded-full bg-secondary overflow-hidden w-20">
+                                    <div
+                                      className={`h-full rounded-full ${getSkorBarColor(p.total_skor)}`}
+                                      style={{ width: `${Math.min(p.total_skor, 100)}%` }}
+                                    />
+                                  </div>
+                                </td>
+                              </tr>
+
+                              {/* Baris rincian indikator — muncul saat diklik */}
+                              {isOpen && (
+                                <tr key={`${rowKey}-detail`}>
+                                  <td colSpan={6} className="p-0 bg-muted/10">
+                                    <div className="px-8 py-3 border-t border-dashed">
+                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                                        Rincian Indikator — {p.nama_periode}
+                                      </p>
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="text-muted-foreground">
+                                            <th className="text-left pb-1 font-medium">Indikator</th>
+                                            <th className="text-right pb-1 font-medium">Aktual</th>
+                                            <th className="text-right pb-1 font-medium">Target</th>
+                                            <th className="text-right pb-1 font-medium">Bobot</th>
+                                            <th className="text-right pb-1 font-medium">Skor</th>
+                                            <th className="text-center pb-1 font-medium">Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/50">
+                                          {p.indikator.map((ind, j) => (
+                                            <tr key={j} className="py-1">
+                                              <td className="py-1.5 pr-2">{ind.nama_indikator}</td>
+                                              <td className="py-1.5 text-right">
+                                                {ind.nilai_aktual} {ind.satuan ?? ""}
+                                              </td>
+                                              <td className="py-1.5 text-right">
+                                                {ind.nilai_target} {ind.satuan ?? ""}
+                                              </td>
+                                              <td className="py-1.5 text-right">{ind.bobot_persen}%</td>
+                                              <td className="py-1.5 text-right font-medium">
+                                                {ind.skor.toFixed(2)}
+                                              </td>
+                                              <td className="py-1.5 text-center">
+                                                <Badge
+                                                  variant={ind.tercapai ? "success" : "destructive"}
+                                                  className="text-[10px] px-1.5 py-0"
+                                                >
+                                                  {ind.tercapai ? "Tercapai" : "Belum"}
+                                                </Badge>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          );
+                        })}
+
                         {/* Baris rata-rata */}
                         <tr className="bg-muted/40 font-semibold">
+                          <td className="px-3 py-2"></td>
                           <td className="px-3 py-2 text-muted-foreground">Rata-rata</td>
                           <td className="px-3 py-2 text-right">{item.avg_skor.toFixed(1)}</td>
                           <td className="px-3 py-2">
